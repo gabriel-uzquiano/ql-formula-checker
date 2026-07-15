@@ -103,7 +103,7 @@
     <!-- Formula card -->
     <div class="card" id="formula-card">
       <div class="card-header">
-        <span class="card-title">Formula</span>
+        <span class="section-title">Formula</span>
       </div>
       <div class="card-body">
         <!-- Symbol buttons: quantifiers, connectives, parens -->
@@ -139,15 +139,15 @@
         <div id="parse-status" class="parse-status" aria-live="polite"></div>
 
         <!-- Examples row -->
-        <div class="examples-row" id="examples-row">
+        <div class="formula-examples" id="examples-row">
           <span class="examples-label">Examples:</span>
-          <div class="examples-chips" id="examples-chips">
-            <button class="chip" data-formula="∀x Pxy">∀x Pxy</button>
-            <button class="chip" data-formula="∃x(Px ∧ Qx)">∃x(Px ∧ Qx)</button>
-            <button class="chip" data-formula="(∀x Pxy → ∃y Qab)">(∀x Pxy → ∃y Qab)</button>
-            <button class="chip" data-formula="∀x(Px → Qx)">∀x(Px → Qx)</button>
-            <button class="chip" data-formula="¬∃x(Pxy ∧ x = y)">¬∃x(Pxy ∧ x = y)</button>
-            <button class="chip" data-formula="∀x∀y(Rxy → Ryx)">∀x∀y(Rxy → Ryx)</button>
+          <div class="examples-chips" id="examples-chips" style="display:contents">
+            <button class="example-chip" data-formula="∀x Pxy">∀x Pxy</button>
+            <button class="example-chip" data-formula="∃x(Px ∧ Qx)">∃x(Px ∧ Qx)</button>
+            <button class="example-chip" data-formula="(∀x Pxy → ∃y Qab)">(∀x Pxy → ∃y Qab)</button>
+            <button class="example-chip" data-formula="∀x(Px → Qx)">∀x(Px → Qx)</button>
+            <button class="example-chip" data-formula="¬∃x(Pxy ∧ x = y)">¬∃x(Pxy ∧ x = y)</button>
+            <button class="example-chip" data-formula="∀x∀y(Rxy → Ryx)">∀x∀y(Rxy → Ryx)</button>
           </div>
         </div>
       </div>
@@ -156,7 +156,7 @@
     <!-- Parse Tree card -->
     <div class="card" id="tree-card">
       <div class="card-header">
-        <span class="card-title">Parse Tree</span>
+        <span class="section-title">Parse Tree</span>
       </div>
       <div class="card-body">
         <div id="tree-container" class="tree-container">
@@ -169,7 +169,7 @@
     <!-- Free variables card -->
     <div class="card" id="vars-card" hidden>
       <div class="card-header">
-        <span class="card-title">Variables</span>
+        <span class="section-title">Variables</span>
         <span class="card-subtitle" id="vars-subtitle"></span>
       </div>
       <div class="card-body" id="vars-body">

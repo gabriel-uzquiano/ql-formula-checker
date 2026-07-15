@@ -65,6 +65,10 @@
   --color-false-bg:    #fce8e8;
   --color-false-border:#ef9a9a;
 
+  /* Free variable colour — gold/amber */
+  --color-free: #b45309;
+  --color-border-strong: #b0a898;
+
   /* Graph relation color */
   --color-relation: #006666;
 
@@ -111,6 +115,8 @@
   --color-false-bg:        #2d1414;
   --color-false-border:    #5c2828;
   --color-relation:        #4db6ac;
+  --color-free:            #f59e0b;
+  --color-border-strong:   #5a5850;
   --color-header-bg:       #1a1a1a;
   --color-header-text:     #e8e4dc;
   --color-header-accent:   #31b7f1;
@@ -144,6 +150,8 @@
     --color-false-bg:        #2d1414;
     --color-false-border:    #5c2828;
     --color-relation:        #4db6ac;
+    --color-free:            #f59e0b;
+    --color-border-strong:   #5a5850;
     --color-header-bg:       #1a1a1a;
     --color-header-text:     #e8e4dc;
     --color-header-accent:   #31b7f1;
@@ -268,7 +276,9 @@ input, select { font: inherit; color: inherit; }
   max-width: 900px;
   margin: 0 auto;
   padding: var(--space-6);
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 /* ─── Cards — clean academic book style ──────────────────────── */
