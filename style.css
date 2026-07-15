@@ -1203,3 +1203,51 @@ ol.help-list {
 .tree-empty[hidden] { display: none !important; }
 .tree-container { display: block !important; padding: var(--space-4) 0; overflow-x: auto; text-align: center; }
 #tree-svg { display: inline-block !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SVG TREE STYLES
+   ═══════════════════════════════════════════════════════════════ */
+.tree-edge {
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+.tree-node-rect {
+  stroke: var(--color-border);
+  fill: var(--color-surface);
+  stroke-width: 1.5;
+}
+.tree-node-text {
+  font-family: var(--font-body);
+  font-size: 13px;
+  fill: var(--color-text);
+}
+
+/* Node type colour overrides */
+.node-atomic .tree-node-rect { stroke: var(--color-teal);    fill: var(--color-surface); }
+.node-atomic .tree-node-text { fill: var(--color-teal); }
+.node-neg    .tree-node-rect { stroke: var(--color-primary); fill: var(--color-surface); }
+.node-neg    .tree-node-text { fill: var(--color-primary); }
+.node-binary .tree-node-rect { stroke: var(--color-border);  fill: var(--color-surface); }
+.node-binary .tree-node-text { fill: var(--color-text); }
+.node-quant  .tree-node-rect { stroke: var(--color-primary); fill: var(--color-surface); }
+.node-quant  .tree-node-text { fill: var(--color-primary); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SYMBOL BAR — single-row flex (QL has more buttons)
+   ═══════════════════════════════════════════════════════════════ */
+.symbol-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.sym-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  margin: 0 var(--space-1);
+}
