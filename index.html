@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QL Formula Checker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="logo-text">Formula Checker</span>
+        <span class="logo-subtitle">Quantificational Logic</span>
+      </div>
+      <div class="header-right">
+        <button type="button" id="copy-link-btn" class="copy-link-btn" title="Copy a link to this state">
+          <svg class="copy-link-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <span class="copy-link-text">Copy link</span>
+        </button>
+        <a href="#" class="help-link" onclick="toggleHelp(event)">Help</a>
+        <button class="theme-toggle" data-theme-toggle
+                aria-label="Switch theme" title="Switch theme">
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Help panel -->
+  <div id="help-panel" class="help-panel" hidden>
+    <div class="help-inner">
+      <div class="help-col">
+        <div class="help-section">
+          <div class="help-section-title">VOCABULARY</div>
+          <p><strong>Constants</strong><br>a, b, c, d, e (with optional numeric subscripts)</p>
+          <p><strong>Variables</strong><br>x, y, z (with optional numeric subscripts)</p>
+          <p><strong>Predicates</strong><br>P, Q, R, S, T (with optional numeric subscripts)</p>
+          <p><strong>Connectives</strong><br>¬ &nbsp; ∧ &nbsp; ∨ &nbsp; →</p>
+          <p><strong>Quantifiers</strong><br>∀ &nbsp; ∃</p>
+          <p><strong>Identity</strong><br>τ₁ = τ₂ (terms are constants or variables)</p>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">FORMATION RULES</div>
+          <p>1. If P is an n-place predicate and τ₁,…,τₙ are terms, then Pτ₁…τₙ is a formula.</p>
+          <p>2. If τ₁ and τ₂ are terms, then τ₁ = τ₂ is a formula.</p>
+          <p>3. If φ and ψ are formulas, so are:<br>
+             &nbsp;&nbsp;¬φ, &nbsp;(φ ∧ ψ), &nbsp;(φ ∨ ψ), &nbsp;(φ → ψ)</p>
+          <p>4. If φ is a formula and x is a variable, then ∀x φ and ∃x φ are formulas.</p>
+          <p>5. Nothing else is a formula.</p>
+          <p><em>The outer parentheses of a formula not part of a larger formula may be dropped as an abbreviation.</em></p>
+        </div>
+      </div>
+
+      <div class="help-col">
+        <div class="help-section">
+          <div class="help-section-title">EXAMPLES</div>
+          <table class="help-table">
+            <thead><tr><th>Expression</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Pxy</td><td>official formula</td></tr>
+              <tr><td>x = y</td><td>official formula</td></tr>
+              <tr><td>∀x Pxy</td><td>official formula</td></tr>
+              <tr><td>(∀x Pxy → ∃y Qab)</td><td>official formula</td></tr>
+              <tr><td>∀x Pxy → ∃y Qab</td><td class="unofficial-eg">unofficial formula (abbreviates (∀x Pxy → ∃y Qab))</td></tr>
+              <tr><td>¬(Px → A)</td><td class="error-eg">not a formula (A is not a term)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">ASCII SHORTCUTS</div>
+          <table class="help-table">
+            <thead><tr><th>Type</th><th>Symbol</th></tr></thead>
+            <tbody>
+              <tr><td>~ -</td><td>¬</td></tr>
+              <tr><td>&amp; /\</td><td>∧</td></tr>
+              <tr><td>| \/</td><td>∨</td></tr>
+              <tr><td>-&gt; =&gt;</td><td>→</td></tr>
+              <tr><td>A (before variable)</td><td>∀</td></tr>
+              <tr><td>E (before variable)</td><td>∃</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="app-main">
+    <!-- Formula card -->
+    <div class="card" id="formula-card">
+      <div class="card-header">
+        <span class="card-title">Formula</span>
+      </div>
+      <div class="card-body">
+        <!-- Symbol buttons: quantifiers, connectives, parens -->
+        <div class="symbol-bar" id="symbol-bar" role="toolbar" aria-label="Insert symbol">
+          <button class="sym-btn" data-insert="∀" title="Universal quantifier">∀</button>
+          <button class="sym-btn" data-insert="∃" title="Existential quantifier">∃</button>
+          <div class="sym-divider"></div>
+          <button class="sym-btn" data-insert="¬" title="Negation">¬</button>
+          <button class="sym-btn" data-insert="∧" title="Conjunction">∧</button>
+          <button class="sym-btn" data-insert="∨" title="Disjunction">∨</button>
+          <button class="sym-btn" data-insert="→" title="Conditional">→</button>
+          <div class="sym-divider"></div>
+          <button class="sym-btn" data-insert="=" title="Identity">=</button>
+          <div class="sym-divider"></div>
+          <button class="sym-btn paren-btn" data-insert="(" title="Left parenthesis">(</button>
+          <button class="sym-btn paren-btn" data-insert=")" title="Right parenthesis">)</button>
+        </div>
+
+        <div class="formula-input-wrap">
+          <textarea
+            id="formula-input"
+            class="formula-input"
+            rows="1"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            placeholder="e.g.  ∀x Pxy  or  ∃x(Px ∧ Qx)"
+            aria-label="Enter a QL formula"
+          ></textarea>
+        </div>
+
+        <div id="parse-status" class="parse-status" aria-live="polite"></div>
+
+        <!-- Examples row -->
+        <div class="examples-row" id="examples-row">
+          <span class="examples-label">Examples:</span>
+          <div class="examples-chips" id="examples-chips">
+            <button class="chip" data-formula="∀x Pxy">∀x Pxy</button>
+            <button class="chip" data-formula="∃x(Px ∧ Qx)">∃x(Px ∧ Qx)</button>
+            <button class="chip" data-formula="(∀x Pxy → ∃y Qab)">(∀x Pxy → ∃y Qab)</button>
+            <button class="chip" data-formula="∀x(Px → Qx)">∀x(Px → Qx)</button>
+            <button class="chip" data-formula="¬∃x(Pxy ∧ x = y)">¬∃x(Pxy ∧ x = y)</button>
+            <button class="chip" data-formula="∀x∀y(Rxy → Ryx)">∀x∀y(Rxy → Ryx)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parse Tree card -->
+    <div class="card" id="tree-card">
+      <div class="card-header">
+        <span class="card-title">Parse Tree</span>
+      </div>
+      <div class="card-body">
+        <div id="tree-container" class="tree-container">
+          <div id="tree-empty" class="tree-empty">Enter a formula to see its parse tree.</div>
+          <div id="tree-svg" class="tree-svg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Free variables card -->
+    <div class="card" id="vars-card" hidden>
+      <div class="card-header">
+        <span class="card-title">Variables</span>
+        <span class="card-subtitle" id="vars-subtitle"></span>
+      </div>
+      <div class="card-body" id="vars-body">
+      </div>
+    </div>
+
+  </main>
+
+  <script src="parser.js"></script>
+  <script src="evaluator.js"></script>
+  <script src="tree.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
