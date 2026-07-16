@@ -526,38 +526,51 @@ function drawBindingArcs() {
   const formulaDiv = document.getElementById('ql-var-quiz-formula');
   if (!arcSvg || !formulaDiv) return;
 
-  // Clear existing arcs
   arcSvg.innerHTML = '';
 
-  // Resize SVG to match the formulaDiv
+  // ── Pass 1: measure required clearance ──────────────────────────
+  // Collect arc geometry without drawing, find the tallest arc above
+  // the formula line, then set padding-top so arcs never overlap the
+  // title/instructions sitting above this div.
+  let maxRise = 0;
+  const BUFFER = 20; // px breathing room above highest arc
+
+  _varOccurrences.forEach((occ, i) => {
+    if (occ.studentAnswer !== 'bound' || !occ.bindingQuantifier) return;
+    const btn        = formulaDiv.querySelector(`.var-quiz-var[data-occ-idx="${i}"]`);
+    const binderSpan = formulaDiv.querySelector(`.vq-binder[data-binder="${occ.bindingQuantifier}"]`);
+    if (!btn || !binderSpan) return;
+    const rise = Math.max(18, Math.abs(btn.getBoundingClientRect().left - binderSpan.getBoundingClientRect().left) * 0.45);
+    if (rise > maxRise) maxRise = rise;
+  });
+
+  // Apply the measured padding so arcs have room
+  const requiredPad = maxRise > 0 ? maxRise + BUFFER : 36;
+  formulaDiv.style.paddingTop = requiredPad + 'px';
+
+  // ── Pass 2: draw arcs with updated layout ───────────────────────
   const fdRect = formulaDiv.getBoundingClientRect();
 
   _varOccurrences.forEach((occ, i) => {
     if (occ.studentAnswer !== 'bound' || !occ.bindingQuantifier) return;
 
-    // Find the chip button
-    const btn = formulaDiv.querySelector(`.var-quiz-var[data-occ-idx="${i}"]`);
-    // Find the binder span (the binding variable span tagged with data-binder)
+    const btn        = formulaDiv.querySelector(`.var-quiz-var[data-occ-idx="${i}"]`);
     const binderSpan = formulaDiv.querySelector(`.vq-binder[data-binder="${occ.bindingQuantifier}"]`);
     if (!btn || !binderSpan) return;
 
-    const btnRect    = btn.getBoundingClientRect();
-    const bRect      = binderSpan.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const bRect   = binderSpan.getBoundingClientRect();
 
-    // Coordinates relative to formulaDiv
-    const x1 = btnRect.left  + btnRect.width  / 2 - fdRect.left;
-    const y1 = btnRect.top   - fdRect.top;           // top edge of chip
-    const x2 = bRect.left   + bRect.width   / 2 - fdRect.left;
-    const y2 = bRect.top    - fdRect.top;            // top edge of binder span
+    const x1 = btnRect.left + btnRect.width  / 2 - fdRect.left;
+    const y1 = btnRect.top  - fdRect.top;          // top of chip
+    const x2 = bRect.left  + bRect.width   / 2 - fdRect.left;
+    const y2 = bRect.top   - fdRect.top;           // top of binder span
 
-    // Arc: cubic bezier that curves upward above both points
-    const rise   = Math.max(18, Math.abs(x2 - x1) * 0.45);
-    const midX   = (x1 + x2) / 2;
-    const cpY    = Math.min(y1, y2) - rise;
+    const rise = Math.max(18, Math.abs(x2 - x1) * 0.45);
+    const cpY  = Math.min(y1, y2) - rise;
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const d = `M ${x1} ${y1} C ${x1} ${cpY}, ${x2} ${cpY}, ${x2} ${y2}`;
-    path.setAttribute('d', d);
+    path.setAttribute('d', `M ${x1} ${y1} C ${x1} ${cpY}, ${x2} ${cpY}, ${x2} ${y2}`);
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke', 'var(--color-teal)');
     path.setAttribute('stroke-width', '1.5');
@@ -566,15 +579,12 @@ function drawBindingArcs() {
     arcSvg.appendChild(path);
   });
 
-  // Add arrowhead marker if any arcs were drawn
   if (arcSvg.children.length > 0) {
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const defs   = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
     marker.setAttribute('id', 'vq-arc-arrow');
-    marker.setAttribute('markerWidth', '6');
-    marker.setAttribute('markerHeight', '6');
-    marker.setAttribute('refX', '3');
-    marker.setAttribute('refY', '3');
+    marker.setAttribute('markerWidth', '6'); marker.setAttribute('markerHeight', '6');
+    marker.setAttribute('refX', '3');        marker.setAttribute('refY', '3');
     marker.setAttribute('orient', 'auto');
     const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     poly.setAttribute('points', '0 0, 6 3, 0 6');
