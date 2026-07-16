@@ -181,10 +181,22 @@ function ptRenderQL() {
 
   const PAD_H = 16, PAD_V = 10, LEVEL_H = 52, H_GAP = 16, MIN_W = 36;
   const BOX_H = PAD_V * 2 + fontSize;
-  // Top margin must be at least BOX_H/2 so the root rect isn't clipped.
+  // Top margin must be at least BOX_H/2 so the root rect is never clipped.
   const MARGIN = Math.ceil(BOX_H / 2) + 4;
 
-  // Layout: ALL nodes (including pending)
+  // Only render nodes that have been reached (active or done) — pending nodes
+  // stay hidden until the student works down to them, matching prop checker.
+  const visible = new Set(flattenBFS(_ast).filter(n =>
+    n._ptState === ST_ACTIVE || n._ptState === ST_DONE_N
+  ));
+
+  if (visible.size === 0) {
+    svgEl.setAttribute('width', '0');
+    svgEl.setAttribute('height', '0');
+    svgEl.innerHTML = '';
+    return;
+  }
+
   const positions = new Map();
 
   function nodeLabel(n) {
@@ -195,8 +207,9 @@ function ptRenderQL() {
     return Math.max(MIN_W, Math.ceil(ctx.measureText(nodeLabel(n)).width) + PAD_H * 2);
   }
 
+  // subtreeW considers only visible nodes
   function subtreeW(n) {
-    const ch = childrenQL(n);
+    const ch = childrenQL(n).filter(c => visible.has(c));
     if (ch.length === 0) return nodeW(n);
     const childTotal = ch.reduce((s, c) => s + subtreeW(c), 0) + (ch.length - 1) * H_GAP;
     return Math.max(nodeW(n), childTotal);
@@ -204,7 +217,7 @@ function ptRenderQL() {
 
   function layoutNode(n, xCenter, depth) {
     positions.set(n, { x: xCenter, y: depth * LEVEL_H + MARGIN, w: nodeW(n) });
-    const ch = childrenQL(n);
+    const ch = childrenQL(n).filter(c => visible.has(c));
     if (!ch.length) return;
     const totalW = ch.reduce((s, c) => s + subtreeW(c), 0) + (ch.length - 1) * H_GAP;
     let cursor = xCenter - totalW / 2;
@@ -233,43 +246,37 @@ function ptRenderQL() {
 
   positions.forEach((pos, n) => {
     const state = n._ptState;
-    const isActive  = state === ST_ACTIVE;
-    const isDone    = state === ST_DONE_N;
-    const isPending = state === ST_PENDING;
+    const isActive = state === ST_ACTIVE;
+    const isDone   = state === ST_DONE_N;
 
-    // Edges to children
-    childrenQL(n).forEach(child => {
+    // Edges to visible children only
+    childrenQL(n).filter(c => visible.has(c)).forEach(child => {
       const cp = positions.get(child);
       if (!cp) return;
       edgeG.appendChild(qlSvgEl('line', {
-        x1: pos.x,           y1: pos.y + BOX_H / 2,
-        x2: cp.x,            y2: cp.y - BOX_H / 2,
-        stroke: QL_COLOR_BORDER,
-        'stroke-width': '1.5',
-        'stroke-dasharray': isPending ? '4 3' : 'none',
-        opacity: isPending ? '0.4' : '1',
+        x1: pos.x, y1: pos.y + BOX_H / 2,
+        x2: cp.x,  y2: cp.y - BOX_H / 2,
+        stroke: QL_COLOR_BORDER, 'stroke-width': '1.5',
       }));
     });
 
     // Node box
     const x = pos.x - pos.w / 2;
     const y = pos.y - BOX_H / 2;
-    const strokeColor = isActive ? QL_COLOR_ACTIVE : isDone ? QL_COLOR_DONE : QL_COLOR_PENDING;
+    const strokeColor = isActive ? QL_COLOR_ACTIVE : QL_COLOR_DONE;
     const fillColor   = isActive ? QL_COLOR_ACTIVE_BG : QL_COLOR_SURFACE;
-    const textColor   = isActive ? QL_COLOR_ACTIVE : isDone ? QL_COLOR_DONE : QL_COLOR_TEXT_MUTED;
+    const textColor   = isActive ? QL_COLOR_ACTIVE : QL_COLOR_DONE;
     const strokeW     = isActive ? '2.5' : '1.5';
 
     const g = qlSvgEl('g', { class: `pt-node pt-node-${state}` });
     g.appendChild(qlSvgEl('rect', {
       x, y, width: pos.w, height: BOX_H, rx: 4, ry: 4,
       fill: fillColor, stroke: strokeColor, 'stroke-width': strokeW,
-      opacity: isPending ? '0.55' : '1',
     }));
     g.appendChild(qlSvgEl('text', {
       x: pos.x, y: pos.y + fontSize * 0.38,
       'text-anchor': 'middle', 'dominant-baseline': 'central',
-      'font-family': 'var(--font-mono)',
-      'font-size': fontSize,
+      'font-family': 'var(--font-mono)', 'font-size': fontSize,
       fill: textColor,
     }, nodeLabel(n)));
     nodeG.appendChild(g);
@@ -351,7 +358,11 @@ function buildVarQuiz() {
   if (!panel) return;
 
   panel.hidden = false;  // ensure visible before scroll
-  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  setTimeout(() => {
+    const rect = panel.getBoundingClientRect();
+    const scrollY = window.scrollY + rect.top - 80; // 80px offset from top
+    window.scrollTo({ top: scrollY, behavior: 'smooth' });
+  }, 150);
 
   const formulaDiv = document.getElementById('ql-var-quiz-formula');
   if (formulaDiv) {
