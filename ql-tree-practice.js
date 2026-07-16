@@ -144,130 +144,132 @@ function ptMarkRevealed(node) {
   });
 }
 
+// ── SVG helpers (DOM-based so CSS vars resolve) ───────────────────────────────
+function qlSvgEl(tag, attrs, text) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+// Colour constants — CSS vars; resolved at paint time because we set them
+// as attribute values on DOM elements created via createElementNS.
+const QL_COLOR_PENDING  = 'var(--color-border)';
+const QL_COLOR_ACTIVE   = 'var(--color-practice-active, #1565c0)';
+const QL_COLOR_DONE     = 'var(--color-primary, #7a1a3a)';
+const QL_COLOR_ACTIVE_BG = 'var(--color-practice-active-bg, #e8f0fe)';
+const QL_COLOR_SURFACE  = 'var(--color-surface)';
+const QL_COLOR_TEXT_MUTED = 'var(--color-text-muted)';
+const QL_COLOR_TEXT     = 'var(--color-text)';
+const QL_COLOR_BORDER   = 'var(--color-border)';
+
 // ── SVG rendering (tree stage) ────────────────────────────────────────────────
-// Renders the partial tree into #ql-practice-svg, showing only revealed nodes.
+// Renders the FULL tree into #ql-practice-svg — all nodes are shown from the
+// start (pending nodes appear muted) so students can see the whole formula
+// structure as they work top-down.
 function ptRenderQL() {
   const svgEl = document.getElementById('ql-practice-svg');
   if (!svgEl || !_ast) return;
 
-  // Collect revealed nodes (ACTIVE or DONE)
-  const revealed = flattenBFS(_ast).filter(n =>
-    n._ptState === ST_ACTIVE || n._ptState === ST_DONE_N
-  );
-
-  if (revealed.length === 0) {
-    svgEl.setAttribute('width', '0');
-    svgEl.setAttribute('height', '0');
-    svgEl.innerHTML = '';
-    return;
-  }
-
   // Measure label widths using a temporary canvas
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const fontSize = 15;
+  const fontSize = 13;
   const fontFace = 'et-book, Palatino Linotype, Book Antiqua, Palatino, Georgia, serif';
   ctx.font = `${fontSize}px ${fontFace}`;
 
-  const PAD_H = 14, PAD_V = 8, LEVEL_H = 52, MIN_W = 36;
+  const PAD_H = 12, PAD_V = 7, LEVEL_H = 48, H_GAP = 16, MIN_W = 32, MARGIN = 8;
+  const BOX_H = PAD_V * 2 + fontSize;
 
-  // Assign layout positions using a recursive layout
-  const positions = new Map(); // node → {x, y, w}
+  // Layout: ALL nodes (including pending)
+  const positions = new Map();
 
   function nodeLabel(n) {
     return prettyPrint(n, n === _ast);
   }
 
   function nodeW(n) {
-    const label = nodeLabel(n);
-    return Math.max(MIN_W, Math.ceil(ctx.measureText(label).width) + PAD_H * 2);
+    return Math.max(MIN_W, Math.ceil(ctx.measureText(nodeLabel(n)).width) + PAD_H * 2);
   }
 
-  // Layout: compute subtree width for revealed nodes only
   function subtreeW(n) {
-    const ch = childrenQL(n).filter(c => revealed.includes(c));
+    const ch = childrenQL(n);
     if (ch.length === 0) return nodeW(n);
-    const childTotal = ch.reduce((s, c) => s + subtreeW(c), 0) + (ch.length - 1) * 20;
+    const childTotal = ch.reduce((s, c) => s + subtreeW(c), 0) + (ch.length - 1) * H_GAP;
     return Math.max(nodeW(n), childTotal);
   }
 
   function layoutNode(n, xCenter, depth) {
-    const w = nodeW(n);
-    const y = depth * LEVEL_H + 16;
-    positions.set(n, { x: xCenter, y, w });
-
-    const ch = childrenQL(n).filter(c => revealed.includes(c));
-    if (ch.length === 0) return;
-
-    const totalW = ch.reduce((s, c) => s + subtreeW(c), 0) + (ch.length - 1) * 20;
+    positions.set(n, { x: xCenter, y: depth * LEVEL_H + MARGIN, w: nodeW(n) });
+    const ch = childrenQL(n);
+    if (!ch.length) return;
+    const totalW = ch.reduce((s, c) => s + subtreeW(c), 0) + (ch.length - 1) * H_GAP;
     let cursor = xCenter - totalW / 2;
     ch.forEach(c => {
       const sw = subtreeW(c);
       layoutNode(c, cursor + sw / 2, depth + 1);
-      cursor += sw + 20;
+      cursor += sw + H_GAP;
     });
   }
 
   const rootSW = subtreeW(_ast);
-  const totalW = Math.max(rootSW + 40, 120);
-  layoutNode(_ast, totalW / 2, 0);
+  const svgW = Math.max(rootSW + MARGIN * 2, 120);
+  layoutNode(_ast, svgW / 2, 0);
 
-  // Compute SVG height
-  const maxDepth = Math.max(...[...positions.values()].map(p => p.y));
-  const svgH = maxDepth + 60;
-  const svgW = totalW;
-
-  // Build SVG
-  const BOX_H = PAD_V * 2 + fontSize;
-  let edges = '', nodes = '';
-
-  positions.forEach((pos, n) => {
-    const ch = childrenQL(n).filter(c => revealed.includes(c));
-    ch.forEach(c => {
-      const cp = positions.get(c);
-      if (!cp) return;
-      edges += `<line x1="${pos.x}" y1="${pos.y + BOX_H / 2}" x2="${cp.x}" y2="${cp.y - BOX_H / 2}"
-        stroke="var(--color-border-strong, #aaa)" stroke-width="1.5"/>`;
-    });
-  });
-
-  positions.forEach((pos, n) => {
-    const label = nodeLabel(n);
-    const w = pos.w;
-    const x = pos.x - w / 2;
-    const y = pos.y - BOX_H / 2;
-    const state = n._ptState;
-
-    let stroke = 'var(--color-border)';
-    let fill   = 'var(--color-surface)';
-    let textC  = 'var(--color-text)';
-
-    if (state === ST_ACTIVE) {
-      stroke = 'var(--color-accent)';
-      fill   = 'color-mix(in srgb, var(--color-accent) 8%, var(--color-surface))';
-      textC  = 'var(--color-accent)';
-    } else if (state === ST_DONE_N) {
-      stroke = 'var(--color-primary, #7a1a3a)';
-      fill   = 'color-mix(in srgb, var(--color-primary, #7a1a3a) 6%, var(--color-surface))';
-      textC  = 'var(--color-primary, #7a1a3a)';
-    }
-
-    nodes += `<g class="pt-node pt-node-${state}">
-      <rect x="${x}" y="${y}" width="${w}" height="${BOX_H}" rx="5" ry="5"
-            fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-      <text x="${pos.x}" y="${pos.y + fontSize * 0.35}"
-            font-family="${fontFace}" font-size="${fontSize}"
-            text-anchor="middle" fill="${textC}">${escSvg(label)}</text>
-    </g>`;
-  });
+  const maxY = Math.max(...[...positions.values()].map(p => p.y));
+  const svgH = maxY + BOX_H + MARGIN + 16;
 
   svgEl.setAttribute('width',  svgW);
   svgEl.setAttribute('height', svgH);
-  svgEl.innerHTML = `<g transform="translate(0,0)">${edges}</g><g transform="translate(0,0)">${nodes}</g>`;
-}
+  svgEl.innerHTML = '';
 
-function escSvg(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const edgeG = qlSvgEl('g', {});
+  const nodeG = qlSvgEl('g', {});
+  svgEl.appendChild(edgeG);
+  svgEl.appendChild(nodeG);
+
+  positions.forEach((pos, n) => {
+    const state = n._ptState;
+    const isActive  = state === ST_ACTIVE;
+    const isDone    = state === ST_DONE_N;
+    const isPending = state === ST_PENDING;
+
+    // Edges to children
+    childrenQL(n).forEach(child => {
+      const cp = positions.get(child);
+      if (!cp) return;
+      edgeG.appendChild(qlSvgEl('line', {
+        x1: pos.x,           y1: pos.y + BOX_H / 2,
+        x2: cp.x,            y2: cp.y - BOX_H / 2,
+        stroke: QL_COLOR_BORDER,
+        'stroke-width': '1.5',
+        'stroke-dasharray': isPending ? '4 3' : 'none',
+        opacity: isPending ? '0.4' : '1',
+      }));
+    });
+
+    // Node box
+    const x = pos.x - pos.w / 2;
+    const y = pos.y - BOX_H / 2;
+    const strokeColor = isActive ? QL_COLOR_ACTIVE : isDone ? QL_COLOR_DONE : QL_COLOR_PENDING;
+    const fillColor   = isActive ? QL_COLOR_ACTIVE_BG : QL_COLOR_SURFACE;
+    const textColor   = isActive ? QL_COLOR_ACTIVE : isDone ? QL_COLOR_DONE : QL_COLOR_TEXT_MUTED;
+    const strokeW     = isActive ? '2.5' : '1.5';
+
+    const g = qlSvgEl('g', { class: `pt-node pt-node-${state}` });
+    g.appendChild(qlSvgEl('rect', {
+      x, y, width: pos.w, height: BOX_H, rx: 4, ry: 4,
+      fill: fillColor, stroke: strokeColor, 'stroke-width': strokeW,
+      opacity: isPending ? '0.55' : '1',
+    }));
+    g.appendChild(qlSvgEl('text', {
+      x: pos.x, y: pos.y + fontSize * 0.38,
+      'text-anchor': 'middle', 'dominant-baseline': 'central',
+      'font-family': fontFace, 'font-size': fontSize,
+      fill: textColor,
+    }, nodeLabel(n)));
+    nodeG.appendChild(g);
+  });
 }
 
 // ── Toolbar state ─────────────────────────────────────────────────────────────
