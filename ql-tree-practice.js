@@ -367,7 +367,8 @@ function buildVarQuiz() {
         btn.textContent = t.text;
         btn.dataset.occIdx = occIdx;
         btn.title = 'Click to toggle free / bound';
-        btn.addEventListener('click', () => varQuizToggle(occIdx));
+        const _idx = occIdx; // capture current value
+        btn.addEventListener('click', () => varQuizToggle(_idx));
         formulaDiv.appendChild(btn);
         occIdx++;
       }
