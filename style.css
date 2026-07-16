@@ -1292,6 +1292,18 @@ ol.help-list {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
+/* ─── Active node indicator ─────────────────────────────────── */
+@keyframes pt-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+.pt-active-rect {
+  animation: pt-pulse 1.6s ease-in-out infinite;
+}
+.pt-active-arrow {
+  animation: pt-pulse 1.6s ease-in-out infinite;
+}
+
 /* ─── Practice toolbar ───────────────────────────────────────── */
 .pt-toolbar {
   display: flex;
@@ -1468,6 +1480,10 @@ ol.help-list {
 .var-quiz-var[data-answer="bound"] .vq-badge {
   background: var(--color-accent);
   color: #fff;
+  font-size: 0.63em;
+  letter-spacing: 0.01em;
+  /* ensure white is readable on teal in both themes */
+  text-shadow: 0 0 1px rgba(0,0,0,0.3);
 }
 /* Feedback states */
 .var-quiz-var.correct  { outline: 2px solid var(--color-ok, #2e7d32); outline-offset: 2px; }

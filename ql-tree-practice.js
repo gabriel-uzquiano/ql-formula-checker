@@ -181,8 +181,8 @@ function ptRenderQL() {
 
   const PAD_H = 16, PAD_V = 10, LEVEL_H = 52, H_GAP = 16, MIN_W = 36;
   const BOX_H = PAD_V * 2 + fontSize;
-  // Top margin must be at least BOX_H/2 so the root rect is never clipped.
-  const MARGIN = Math.ceil(BOX_H / 2) + 4;
+  // Top margin: BOX_H/2 for the rect + 16px for the arrow indicator above
+  const MARGIN = Math.ceil(BOX_H / 2) + 16;
 
   // Only render nodes that have been reached (active or done) — pending nodes
   // stay hidden until the student works down to them, matching prop checker.
@@ -266,19 +266,31 @@ function ptRenderQL() {
     const strokeColor = isActive ? QL_COLOR_ACTIVE : QL_COLOR_DONE;
     const fillColor   = isActive ? QL_COLOR_ACTIVE_BG : QL_COLOR_SURFACE;
     const textColor   = isActive ? QL_COLOR_ACTIVE : QL_COLOR_DONE;
-    const strokeW     = isActive ? '2.5' : '1.5';
+    const strokeW     = isActive ? '3' : '1.5';
 
     const g = qlSvgEl('g', { class: `pt-node pt-node-${state}` });
     g.appendChild(qlSvgEl('rect', {
       x, y, width: pos.w, height: BOX_H, rx: 4, ry: 4,
       fill: fillColor, stroke: strokeColor, 'stroke-width': strokeW,
+      class: isActive ? 'pt-active-rect' : '',
     }));
     g.appendChild(qlSvgEl('text', {
       x: pos.x, y: pos.y + fontSize * 0.38,
       'text-anchor': 'middle', 'dominant-baseline': 'central',
       'font-family': 'var(--font-mono)', 'font-size': fontSize,
+      'font-weight': isActive ? '700' : '400',
       fill: textColor,
     }, nodeLabel(n)));
+    // Small arrow above the active node to make it unmistakable
+    if (isActive) {
+      g.appendChild(qlSvgEl('text', {
+        x: pos.x, y: y - 4,
+        'text-anchor': 'middle',
+        'font-size': '9',
+        fill: QL_COLOR_ACTIVE,
+        class: 'pt-active-arrow',
+      }, '▼'));
+    }
     nodeG.appendChild(g);
   });
 }
@@ -320,78 +332,100 @@ function ptHideOCQuiz() {
 
 // ── Variable quiz (Stage 2) ───────────────────────────────────────────────────
 //
-// We tokenise the formula's prettyPrint string and for every variable token
-// that is NOT the binding variable in a quantifier (i.e. not immediately after
-// ∀/∃), we create a clickable chip.  The correct answer for each comes from
-// the freeVars() set computed over the full AST.
+// Walk the AST to collect every term-variable occurrence with its binding
+// quantifier string (e.g. "∀x") or null if free.  Display the formula in
+// context with clickable chips; on "bound" reveal which quantifier binds it.
+
+// Collect all term-variable occurrences left-to-right via AST walk.
+// Returns [{varName, isFree, bindingQuantifier}] where bindingQuantifier is
+// the quantifier label string ("∀x", "∃y", …) or null for free occurrences.
+function collectOccurrences(ast) {
+  const occurrences = [];
+  function walk(node, boundBy) {
+    switch (node.type) {
+      case 'pred':
+        node.terms.forEach(t => {
+          if (t.type === 'var') {
+            const vn = termStr(t);
+            occurrences.push({ varName: vn, isFree: !boundBy.has(vn), bindingQuantifier: boundBy.get(vn) || null });
+          }
+        });
+        break;
+      case 'eq':
+        [node.left, node.right].forEach(t => {
+          if (t.type === 'var') {
+            const vn = termStr(t);
+            occurrences.push({ varName: vn, isFree: !boundBy.has(vn), bindingQuantifier: boundBy.get(vn) || null });
+          }
+        });
+        break;
+      case 'neg':  walk(node.arg, boundBy); break;
+      case 'and': case 'or': case 'imp':
+        walk(node.left, boundBy);
+        walk(node.right, boundBy);
+        break;
+      case 'all': case 'ex': {
+        const qLabel = (node.type === 'all' ? '∀' : '∃') + termStr(node.var);
+        const nb = new Map(boundBy);
+        nb.set(termStr(node.var), qLabel);
+        walk(node.body, nb);
+        break;
+      }
+    }
+  }
+  walk(ast, new Map());
+  return occurrences;
+}
 
 function buildVarQuiz() {
   if (!_ast) return;
 
-  // Collect the set of free variable names (strings like "x", "y1")
-  const freeSet = freeVars(_ast); // Set<string>
-
-  // Tokenise the pretty-printed formula into segments:
-  //   { kind: 'text'|'var', text, occIdx, isBinding, correctAnswer }
-  const formulaStr = prettyPrint(_ast, true);
-  const tokens = tokeniseFormula(formulaStr, freeSet);
-
-  // Build occurrence records for those that need an answer (non-binding vars)
-  _varOccurrences = tokens
-    .filter(t => t.kind === 'var' && !t.isBinding)
-    .map((t, i) => ({
-      idx: i,
-      varName: t.text,
-      correctAnswer: t.correctAnswer,  // 'free' | 'bound'
-      studentAnswer: null,             // null | 'free' | 'bound'
-    }));
-
-  if (_varOccurrences.length === 0) {
-    // No variable occurrences to quiz — skip to OC stage
+  const occList = collectOccurrences(_ast);
+  if (occList.length === 0) {
     _stage = STAGE_OC;
     buildOCQuiz();
     return;
   }
 
-  // Render the quiz panel
+  _varOccurrences = occList.map((occ, i) => ({
+    idx: i,
+    varName: occ.varName,
+    correctAnswer: occ.isFree ? 'free' : 'bound',
+    bindingQuantifier: occ.bindingQuantifier, // null if free
+    studentAnswer: null,
+  }));
+
   const panel = document.getElementById('ql-var-quiz-panel');
   if (!panel) return;
-
-  panel.hidden = false;  // ensure visible before scroll
+  panel.hidden = false;
   setTimeout(() => {
     const rect = panel.getBoundingClientRect();
-    const scrollY = window.scrollY + rect.top - 80; // 80px offset from top
-    window.scrollTo({ top: scrollY, behavior: 'smooth' });
+    window.scrollTo({ top: window.scrollY + rect.top - 80, behavior: 'smooth' });
   }, 150);
+
+  // Tokenise the pretty-printed formula for context display
+  const freeSet = freeVars(_ast);
+  const tokens = tokeniseFormula(prettyPrint(_ast, true), freeSet);
 
   const formulaDiv = document.getElementById('ql-var-quiz-formula');
   if (formulaDiv) {
     formulaDiv.innerHTML = '';
     let occIdx = 0;
     tokens.forEach(t => {
-      if (t.kind === 'text') {
-        const span = document.createElement('span');
-        span.className = 'var-quiz-token';
-        span.textContent = t.text;
-        formulaDiv.appendChild(span);
-      } else if (t.isBinding) {
-        // Binding occurrence — show as plain text (not clickable)
+      if (t.kind === 'text' || t.isBinding) {
         const span = document.createElement('span');
         span.className = 'var-quiz-token';
         span.textContent = t.text;
         formulaDiv.appendChild(span);
       } else {
-        // Clickable variable occurrence
         const btn = document.createElement('button');
         btn.className = 'var-quiz-var';
         btn.dataset.occIdx = occIdx;
         btn.title = 'Click to mark as free or bound';
-        // Variable name span
         const varSpan = document.createElement('span');
         varSpan.className = 'vq-name';
         varSpan.textContent = t.text;
         btn.appendChild(varSpan);
-        // Badge span (shows ?, free, or bound)
         const badgeSpan = document.createElement('span');
         badgeSpan.className = 'vq-badge';
         badgeSpan.textContent = '?';
@@ -404,15 +438,10 @@ function buildVarQuiz() {
     });
   }
 
-  // Reset feedback
   const fb = document.getElementById('ql-var-quiz-feedback');
   if (fb) { fb.textContent = ''; fb.className = 'var-quiz-feedback'; }
-
-  // Enable check button
   const checkBtn = document.getElementById('ql-var-quiz-check');
   if (checkBtn) checkBtn.disabled = false;
-
-  panel.hidden = false;
 }
 
 // Toggle a variable chip: null → 'free' → 'bound' → null
@@ -430,7 +459,13 @@ function varQuizToggle(occIdx) {
     btn.dataset.answer = occ.studentAnswer || '';
     btn.classList.remove('correct', 'incorrect');
     const badge = btn.querySelector('.vq-badge');
-    if (badge) badge.textContent = occ.studentAnswer || '?';
+    if (badge) {
+      if (occ.studentAnswer === 'bound' && occ.bindingQuantifier) {
+        badge.textContent = 'bound by ' + occ.bindingQuantifier;
+      } else {
+        badge.textContent = occ.studentAnswer || '?';
+      }
+    }
   }
 
   // Clear feedback when student changes an answer
@@ -484,7 +519,7 @@ function varQuizCheck() {
           btn.dataset.answer = '';
           btn.classList.remove('incorrect');
           const badge = btn.querySelector('.vq-badge');
-          if (badge) badge.textContent = '?';
+          if (badge) badge.textContent = '?';  // reset to unset state
         }
       });
     }, 1200);
