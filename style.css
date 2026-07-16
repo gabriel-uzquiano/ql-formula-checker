@@ -1473,17 +1473,15 @@ ol.help-list {
   color: #1c1c1c;
 }
 .var-quiz-var[data-answer="bound"] {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+  background: var(--color-teal-highlight);
 }
 .var-quiz-var[data-answer="bound"] .vq-badge {
-  background: var(--color-accent);
-  color: #fff;
+  background: var(--color-teal);
+  color: var(--color-teal-highlight); /* dark bg text in dark mode, light in light mode */
   font-size: 0.63em;
   letter-spacing: 0.01em;
-  /* ensure white is readable on teal in both themes */
-  text-shadow: 0 0 1px rgba(0,0,0,0.3);
 }
 /* Feedback states */
 .var-quiz-var.correct  { outline: 2px solid var(--color-ok, #2e7d32); outline-offset: 2px; }

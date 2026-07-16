@@ -152,16 +152,19 @@ function qlSvgEl(tag, attrs, text) {
   return el;
 }
 
-// Colour constants — CSS vars; resolved at paint time because we set them
-// as attribute values on DOM elements created via createElementNS.
-const QL_COLOR_PENDING  = 'var(--color-border)';
-const QL_COLOR_ACTIVE   = 'var(--color-practice-active, #1565c0)';
-const QL_COLOR_DONE     = 'var(--color-primary, #7a1a3a)';
-const QL_COLOR_ACTIVE_BG = 'var(--color-practice-active-bg, #e8f0fe)';
-const QL_COLOR_SURFACE  = 'var(--color-surface)';
-const QL_COLOR_TEXT_MUTED = 'var(--color-text-muted)';
-const QL_COLOR_TEXT     = 'var(--color-text)';
-const QL_COLOR_BORDER   = 'var(--color-border)';
+// Colour constants — exactly match the prop formula checker's scheme:
+//   active   = blue  (currently being worked on)
+//   pending  = muted border (revealed as child of a done node, not yet active)
+//   done compound = primary / red-brown  (connective node, correctly identified)
+//   done atom     = teal / green         (atomic formula, correctly identified)
+const QL_COLOR_ACTIVE      = 'var(--color-practice-active, #1565c0)';
+const QL_COLOR_ACTIVE_BG   = 'var(--color-practice-active-bg, #e8f0fe)';
+const QL_COLOR_PENDING     = 'var(--color-border)';
+const QL_COLOR_DONE_CMPD   = 'var(--color-primary)';     // red-brown for compound nodes
+const QL_COLOR_DONE_ATOM   = 'var(--color-teal)';        // green-teal for atomic nodes
+const QL_COLOR_SURFACE     = 'var(--color-surface)';
+const QL_COLOR_TEXT_MUTED  = 'var(--color-text-muted)';
+const QL_COLOR_BORDER      = 'var(--color-border)';
 
 // ── SVG rendering (tree stage) ────────────────────────────────────────────────
 // Renders the FULL tree into #ql-practice-svg — all nodes are shown from the
@@ -186,9 +189,17 @@ function ptRenderQL() {
 
   // Only render nodes that have been reached (active or done) — pending nodes
   // stay hidden until the student works down to them, matching prop checker.
-  const visible = new Set(flattenBFS(_ast).filter(n =>
-    n._ptState === ST_ACTIVE || n._ptState === ST_DONE_N
-  ));
+  // Show done and active nodes, plus the immediate children of done nodes
+  // (as revealed-pending), exactly matching the prop checker's reveal logic.
+  const visible = new Set();
+  flattenBFS(_ast).forEach(n => {
+    if (n._ptState === ST_ACTIVE || n._ptState === ST_DONE_N) {
+      visible.add(n);
+      if (n._ptState === ST_DONE_N) {
+        childrenQL(n).forEach(c => visible.add(c)); // pending children shown greyed
+      }
+    }
+  });
 
   if (visible.size === 0) {
     svgEl.setAttribute('width', '0');
@@ -245,11 +256,25 @@ function ptRenderQL() {
   svgEl.appendChild(nodeG);
 
   positions.forEach((pos, n) => {
-    const state = n._ptState;
-    const isActive = state === ST_ACTIVE;
-    const isDone   = state === ST_DONE_N;
+    const state   = n._ptState;
+    const isActive  = state === ST_ACTIVE;
+    const isDone    = state === ST_DONE_N;
+    const isPending = state === ST_PENDING; // revealed-pending child of a done node
 
-    // Edges to visible children only
+    // Atom = pred or eq; compound = quantifier or connective
+    const isAtom = (n.type === 'pred' || n.type === 'eq');
+
+    // Colour scheme matching prop checker exactly
+    const strokeColor = isActive  ? QL_COLOR_ACTIVE
+                      : isDone    ? (isAtom ? QL_COLOR_DONE_ATOM : QL_COLOR_DONE_CMPD)
+                      :               QL_COLOR_PENDING;
+    const fillColor   = isActive  ? QL_COLOR_ACTIVE_BG : QL_COLOR_SURFACE;
+    const textColor   = isActive  ? QL_COLOR_ACTIVE
+                      : isDone    ? (isAtom ? QL_COLOR_DONE_ATOM : QL_COLOR_DONE_CMPD)
+                      :               QL_COLOR_TEXT_MUTED;
+    const strokeW     = isActive  ? '2.5' : '1.8';
+
+    // Edges to visible children
     childrenQL(n).filter(c => visible.has(c)).forEach(child => {
       const cp = positions.get(child);
       if (!cp) return;
@@ -263,10 +288,6 @@ function ptRenderQL() {
     // Node box
     const x = pos.x - pos.w / 2;
     const y = pos.y - BOX_H / 2;
-    const strokeColor = isActive ? QL_COLOR_ACTIVE : QL_COLOR_DONE;
-    const fillColor   = isActive ? QL_COLOR_ACTIVE_BG : QL_COLOR_SURFACE;
-    const textColor   = isActive ? QL_COLOR_ACTIVE : QL_COLOR_DONE;
-    const strokeW     = isActive ? '3' : '1.5';
 
     const g = qlSvgEl('g', { class: `pt-node pt-node-${state}` });
     g.appendChild(qlSvgEl('rect', {
@@ -278,15 +299,13 @@ function ptRenderQL() {
       x: pos.x, y: pos.y + fontSize * 0.38,
       'text-anchor': 'middle', 'dominant-baseline': 'central',
       'font-family': 'var(--font-mono)', 'font-size': fontSize,
-      'font-weight': isActive ? '700' : '400',
       fill: textColor,
     }, nodeLabel(n)));
-    // Small arrow above the active node to make it unmistakable
+    // Downward arrow above the active node
     if (isActive) {
       g.appendChild(qlSvgEl('text', {
         x: pos.x, y: y - 4,
-        'text-anchor': 'middle',
-        'font-size': '9',
+        'text-anchor': 'middle', 'font-size': '9',
         fill: QL_COLOR_ACTIVE,
         class: 'pt-active-arrow',
       }, '▼'));
