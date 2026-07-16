@@ -1,5 +1,4 @@
-// ── QL Formula Checker — app.js ───────────────────────────────────────────────
-'use strict';
+// ── QL Formula Checker — app.js ─────────────────────────────────────────────
 
 // ── Theme toggle ──────────────────────────────────────────────────────────────
 (function () {
@@ -183,8 +182,32 @@ function updateVarsPanel(result) {
   }
 }
 
+// ── Tree tab switching ────────────────────────────────────────────────────────
+var _activeTabQL = 'build';
+var _currentAstQL = null;
+
+function switchTreeTabQL(tab) {
+  _activeTabQL = tab;
+  const panelView  = document.getElementById('ql-panel-view');
+  const panelBuild = document.getElementById('ql-panel-build');
+  const tabView    = document.getElementById('ql-tab-view');
+  const tabBuild   = document.getElementById('ql-tab-build');
+  if (tab === 'view') {
+    if (panelView)  panelView.hidden  = false;
+    if (panelBuild) panelBuild.hidden = true;
+    if (tabView)  { tabView.className  = 'tree-tab tree-tab-active'; tabView.setAttribute('aria-selected','true'); }
+    if (tabBuild) { tabBuild.className = 'tree-tab'; tabBuild.setAttribute('aria-selected','false'); }
+  } else {
+    if (panelView)  panelView.hidden  = true;
+    if (panelBuild) panelBuild.hidden = false;
+    if (tabView)  { tabView.className  = 'tree-tab'; tabView.setAttribute('aria-selected','false'); }
+    if (tabBuild) { tabBuild.className = 'tree-tab tree-tab-active'; tabBuild.setAttribute('aria-selected','true'); }
+    if (_currentAstQL) startPracticeQL(_currentAstQL);
+  }
+}
+
 // ── Main update ───────────────────────────────────────────────────────────────
-let _lastVal = null;
+var _lastVal = null;
 function onFormulaChange() {
   const raw = input.value;
   if (raw === _lastVal) return;
@@ -193,6 +216,7 @@ function onFormulaChange() {
   pushHash();
 
   if (!raw.trim()) {
+    _currentAstQL = null;
     setStatus(null);
     renderTree(null);
     updateVarsPanel(null);
@@ -201,8 +225,11 @@ function onFormulaChange() {
 
   const result = evaluate(raw);
   setStatus(result);
-  renderTree(result && result.status !== 'error' ? result.ast : null);
+  const ast = (result && result.status !== 'error') ? result.ast : null;
+  _currentAstQL = ast;
+  renderTree(ast);
   updateVarsPanel(result);
+  if (_activeTabQL === 'build' && ast) startPracticeQL(ast);
 }
 
 // ── Copy link ─────────────────────────────────────────────────────────────────
@@ -237,3 +264,4 @@ if (copyLinkBtn) copyLinkBtn.addEventListener('click', copyLink);
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadHash();
 if (!input.value) onFormulaChange();
+if (_currentAstQL) startPracticeQL(_currentAstQL);

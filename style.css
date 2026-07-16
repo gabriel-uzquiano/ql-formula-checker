@@ -162,6 +162,7 @@
 
 /* ─── Base reset ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
@@ -1260,4 +1261,263 @@ ol.help-list {
   background: var(--color-border);
   flex-shrink: 0;
   margin: 0 var(--space-1);
+}
+
+/* ─── Tree tab pills (View / Build) ─────────────────────────── */
+.tree-tabs { display: flex; gap: var(--space-1); }
+.tree-tab {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  padding: 0.2rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tree-tab:hover { background: var(--color-surface-offset); color: var(--color-text); }
+.tree-tab-active {
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+  font-weight: 600;
+  border-color: var(--color-border-strong, var(--color-border));
+}
+
+/* ─── Practice toolbar ───────────────────────────────────────── */
+.pt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+}
+.pt-toolbar-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-right: var(--space-1);
+}
+.pt-conn-btn {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  min-width: 2.2rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-offset);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.pt-conn-btn:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border-color: var(--color-accent);
+}
+.pt-conn-btn:disabled { opacity: 0.35; cursor: default; }
+.pt-reset-btn {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.pt-reset-btn:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+
+/* ─── Practice status + SVG ─────────────────────────────────── */
+.practice-status {
+  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  min-height: 1.4em;
+}
+.practice-status.ok { color: var(--color-ok, #2e7d32); font-style: normal; }
+.practice-status.err { color: var(--color-error); font-style: normal; }
+
+/* ─── Shake on wrong answer ──────────────────────────────────── */
+@keyframes pt-shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+.pt-shake { animation: pt-shake 0.35s ease; }
+
+/* ─── Completion banner ──────────────────────────────────────── */
+.practice-complete-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--color-ok, #2e7d32) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ok, #2e7d32) 30%, transparent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-ok, #2e7d32);
+  font-weight: 600;
+}
+
+/* ─── Variable quiz panel ────────────────────────────────────── */
+.var-quiz-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.var-quiz-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+/* The formula displayed with clickable variable chips */
+.var-quiz-formula {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem;
+}
+.var-quiz-token { white-space: pre; }
+.var-quiz-var {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  user-select: none;
+  position: relative;
+}
+.var-quiz-var[data-answer="free"] {
+  background: color-mix(in srgb, #b45309 12%, transparent);
+  border-color: #b45309;
+  color: #b45309;
+}
+[data-theme="dark"] .var-quiz-var[data-answer="free"] {
+  background: color-mix(in srgb, #f59e0b 15%, transparent);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+.var-quiz-var[data-answer="bound"] {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+/* Feedback states */
+.var-quiz-var.correct  { outline: 2px solid var(--color-ok, #2e7d32); outline-offset: 1px; }
+.var-quiz-var.incorrect { outline: 2px solid var(--color-error); outline-offset: 1px; }
+
+.var-quiz-hint {
+  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.var-quiz-actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+.var-quiz-feedback {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  min-height: 1.2em;
+}
+.var-quiz-feedback.ok  { color: var(--color-ok, #2e7d32); }
+.var-quiz-feedback.err { color: var(--color-error); }
+
+/* ─── Open/closed quiz ───────────────────────────────────────── */
+.oc-quiz-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.oc-quiz-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.oc-quiz-question {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+}
+.oc-quiz-buttons { display: flex; gap: var(--space-3); }
+.oc-btn {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  padding: 0.3rem 1.2rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.oc-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+.oc-btn:disabled { opacity: 0.5; cursor: default; }
+.oc-btn.selected-correct {
+  background: color-mix(in srgb, var(--color-ok, #2e7d32) 15%, transparent);
+  border-color: var(--color-ok, #2e7d32);
+  color: var(--color-ok, #2e7d32);
+  font-weight: 700;
+}
+.oc-btn.selected-wrong {
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.oc-quiz-feedback {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  min-height: 1.2em;
+}
+.oc-quiz-feedback.ok  { color: var(--color-ok, #2e7d32); }
+.oc-quiz-feedback.err { color: var(--color-error); }
+
+/* ─── Solution panel ─────────────────────────────────────────── */
+.practice-solution-row {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.practice-solution-panel {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-offset);
+}
+.practice-solution-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
 }

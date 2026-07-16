@@ -157,13 +157,90 @@
     <div class="card" id="tree-card">
       <div class="card-header">
         <span class="section-title">Parse Tree</span>
+        <div class="tree-tabs" role="tablist" aria-label="Tree mode">
+          <button class="tree-tab" id="ql-tab-view" role="tab"
+            aria-selected="false" aria-controls="ql-panel-view"
+            onclick="switchTreeTabQL('view')">View</button>
+          <button class="tree-tab tree-tab-active" id="ql-tab-build" role="tab"
+            aria-selected="true" aria-controls="ql-panel-build"
+            onclick="switchTreeTabQL('build')">Build</button>
+        </div>
       </div>
-      <div class="card-body">
+
+      <!-- VIEW panel -->
+      <div id="ql-panel-view" role="tabpanel" hidden>
         <div id="tree-container" class="tree-container">
           <div id="tree-empty" class="tree-empty">Enter a formula to see its parse tree.</div>
           <div id="tree-svg" class="tree-svg"></div>
         </div>
       </div>
+
+      <!-- BUILD panel -->
+      <div id="ql-panel-build" role="tabpanel">
+
+        <!-- Practice toolbar -->
+        <div class="pt-toolbar" id="ql-pt-toolbar">
+          <span class="pt-toolbar-label">Main connective:</span>
+          <button class="btn pt-conn-btn" data-conn="∀" onclick="practiceAnswerQL('∀')" disabled>∀</button>
+          <button class="btn pt-conn-btn" data-conn="∃" onclick="practiceAnswerQL('∃')" disabled>∃</button>
+          <button class="btn pt-conn-btn" data-conn="¬" onclick="practiceAnswerQL('¬')" disabled>¬</button>
+          <button class="btn pt-conn-btn" data-conn="∧" onclick="practiceAnswerQL('∧')" disabled>∧</button>
+          <button class="btn pt-conn-btn" data-conn="∨" onclick="practiceAnswerQL('∨')" disabled>∨</button>
+          <button class="btn pt-conn-btn" data-conn="→" onclick="practiceAnswerQL('→')" disabled>→</button>
+          <button class="btn pt-conn-btn" data-conn="atom" onclick="practiceAnswerQL('atom')" disabled>atom</button>
+          <button class="btn btn-reset pt-reset-btn" onclick="resetPracticeQL()">Reset</button>
+        </div>
+
+        <!-- Status message -->
+        <p class="practice-status" id="ql-practice-status">Enter a formula above to practice.</p>
+
+        <!-- Practice SVG -->
+        <div class="tree-container" id="ql-practice-container">
+          <svg id="ql-practice-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+
+        <!-- Variable quiz panel -->
+        <div class="var-quiz-panel" id="ql-var-quiz-panel" hidden>
+          <div class="var-quiz-title">Step 2 — Free &amp; Bound Variables</div>
+          <p class="var-quiz-hint">Click each variable occurrence to mark it <strong>free</strong> or <strong>bound</strong>. Click again to cycle back.</p>
+          <div class="var-quiz-formula" id="ql-var-quiz-formula"></div>
+          <div class="var-quiz-actions">
+            <button class="btn btn-primary" id="ql-var-quiz-check" onclick="varQuizCheck()">Check</button>
+            <span class="var-quiz-feedback" id="ql-var-quiz-feedback"></span>
+          </div>
+        </div>
+
+        <!-- Open/closed quiz panel -->
+        <div class="oc-quiz-panel" id="ql-oc-quiz-panel" hidden>
+          <div class="oc-quiz-title">Step 3 — Open or Closed?</div>
+          <p class="oc-quiz-question">Is this formula open or closed?</p>
+          <div class="oc-quiz-buttons">
+            <button class="oc-btn" id="ql-oc-btn-open"  onclick="ocQuizAnswer('open')">Open</button>
+            <button class="oc-btn" id="ql-oc-btn-closed" onclick="ocQuizAnswer('closed')">Closed</button>
+          </div>
+          <span class="oc-quiz-feedback" id="ql-oc-quiz-feedback"></span>
+        </div>
+
+        <!-- Completion banner + solution -->
+        <div class="practice-complete-banner" id="ql-practice-complete-banner" hidden>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          All done!
+        </div>
+        <div class="practice-solution-row" id="ql-practice-solution-row" hidden>
+          <button class="btn btn-secondary" id="ql-practice-solution-btn"
+            onclick="togglePracticeSolutionQL()">Show solution</button>
+          <div class="practice-solution-panel" id="ql-practice-solution-panel" hidden>
+            <div class="practice-solution-label">Full parse tree</div>
+            <div class="tree-container">
+              <svg id="ql-solution-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /ql-panel-build -->
     </div>
 
     <!-- Free variables card -->
@@ -178,9 +255,10 @@
 
   </main>
 
-  <script src="parser.js"></script>
-  <script src="evaluator.js"></script>
-  <script src="tree.js"></script>
-  <script src="app.js"></script>
+  <script src="parser.js?v=4"></script>
+  <script src="evaluator.js?v=4"></script>
+  <script src="tree.js?v=4"></script>
+  <script src="ql-tree-practice.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
