@@ -71,12 +71,14 @@ function practiceAnswerQL(conn) {
     return;
   }
 
-  // Correct — mark node done, find next
+  // Correct — mark node done, reveal children as pending, activate leftmost
   _activeNode._ptState = ST_DONE_N;
   ptMarkRevealed(_activeNode);
 
-  const next = flattenBFS(_ast).find(n => n._ptState === ST_ACTIVE);
-  _activeNode = next || null;
+  // Activate only the leftmost pending node (BFS order), matching prop checker
+  const nextPending = flattenBFS(_ast).find(n => n._ptState === ST_PENDING);
+  if (nextPending) nextPending._ptState = ST_ACTIVE;
+  _activeNode = nextPending || null;
 
   ptRenderQL();
   ptUpdateToolbarQL();
@@ -137,11 +139,14 @@ function childrenQL(node) {
   }
 }
 
-// After marking a node done, reveal its children as ACTIVE
+// After marking a node done, reveal its immediate children as PENDING
+// (only the leftmost will then be activated by the caller)
 function ptMarkRevealed(node) {
   childrenQL(node).forEach(c => {
-    if (c._ptState === ST_PENDING) c._ptState = ST_ACTIVE;
+    if (c._ptState === ST_PENDING) c._ptState = ST_PENDING; // stays pending — caller activates leftmost
   });
+  // Children were already ST_PENDING from init; this is now a no-op intentionally.
+  // Kept for clarity — the visible-set logic in ptRenderQL picks them up as pending.
 }
 
 // ── SVG helpers (DOM-based so CSS vars resolve) ───────────────────────────────
@@ -429,13 +434,39 @@ function buildVarQuiz() {
   const formulaDiv = document.getElementById('ql-var-quiz-formula');
   if (formulaDiv) {
     formulaDiv.innerHTML = '';
+    // Wrap formula content in a relative-positioned container so the arc SVG
+    // overlay can be positioned absolutely over it.
+    formulaDiv.style.position = 'relative';
+
+    // Build an arc SVG overlay (drawn after tokens are placed)
+    const arcSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    arcSvg.id = 'vq-arc-svg';
+    arcSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+
     let occIdx = 0;
+    // Track quantifier-label → the span element for the binding variable
+    // We mark the span right after ∀/∃ with data-binder so arcs can target it.
+    let pendingBinderLabel = null; // set when we see ∀/∃ token
+
     tokens.forEach(t => {
-      if (t.kind === 'text' || t.isBinding) {
+      if (t.kind === 'text') {
+        // Check if this text is purely a quantifier symbol (∀ or ∃)
+        const isQuantSym = t.text === '∀' || t.text === '∃';
         const span = document.createElement('span');
         span.className = 'var-quiz-token';
         span.textContent = t.text;
+        if (isQuantSym) pendingBinderLabel = t.text; // next binding-var completes the label
+        else pendingBinderLabel = null;
         formulaDiv.appendChild(span);
+      } else if (t.isBinding) {
+        // Binding variable — tag with the full quantifier label (e.g. "∀x", "∃y")
+        const fullLabel = pendingBinderLabel ? pendingBinderLabel + t.text : null;
+        const span = document.createElement('span');
+        span.className = 'var-quiz-token vq-binder';
+        if (fullLabel) span.dataset.binder = fullLabel;
+        span.textContent = t.text;
+        formulaDiv.appendChild(span);
+        pendingBinderLabel = null;
       } else {
         const btn = document.createElement('button');
         btn.className = 'var-quiz-var';
@@ -453,14 +484,85 @@ function buildVarQuiz() {
         btn.addEventListener('click', () => varQuizToggle(_idx));
         formulaDiv.appendChild(btn);
         occIdx++;
+        pendingBinderLabel = null;
       }
     });
+
+    // Append arc SVG last so it sits on top
+    formulaDiv.appendChild(arcSvg);
   }
 
   const fb = document.getElementById('ql-var-quiz-feedback');
   if (fb) { fb.textContent = ''; fb.className = 'var-quiz-feedback'; }
   const checkBtn = document.getElementById('ql-var-quiz-check');
   if (checkBtn) checkBtn.disabled = false;
+}
+
+// ── Binding arcs ──────────────────────────────────────────────────
+// For each bound chip, draw a small curved arc from the chip to the span
+// that holds the binding quantifier’s variable (e.g. the “x” in “∀x”).
+function drawBindingArcs() {
+  const arcSvg = document.getElementById('vq-arc-svg');
+  const formulaDiv = document.getElementById('ql-var-quiz-formula');
+  if (!arcSvg || !formulaDiv) return;
+
+  // Clear existing arcs
+  arcSvg.innerHTML = '';
+
+  // Resize SVG to match the formulaDiv
+  const fdRect = formulaDiv.getBoundingClientRect();
+
+  _varOccurrences.forEach((occ, i) => {
+    if (occ.studentAnswer !== 'bound' || !occ.bindingQuantifier) return;
+
+    // Find the chip button
+    const btn = formulaDiv.querySelector(`.var-quiz-var[data-occ-idx="${i}"]`);
+    // Find the binder span (the binding variable span tagged with data-binder)
+    const binderSpan = formulaDiv.querySelector(`.vq-binder[data-binder="${occ.bindingQuantifier}"]`);
+    if (!btn || !binderSpan) return;
+
+    const btnRect    = btn.getBoundingClientRect();
+    const bRect      = binderSpan.getBoundingClientRect();
+
+    // Coordinates relative to formulaDiv
+    const x1 = btnRect.left  + btnRect.width  / 2 - fdRect.left;
+    const y1 = btnRect.top   - fdRect.top;           // top edge of chip
+    const x2 = bRect.left   + bRect.width   / 2 - fdRect.left;
+    const y2 = bRect.top    - fdRect.top;            // top edge of binder span
+
+    // Arc: cubic bezier that curves upward above both points
+    const rise   = Math.max(18, Math.abs(x2 - x1) * 0.45);
+    const midX   = (x1 + x2) / 2;
+    const cpY    = Math.min(y1, y2) - rise;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const d = `M ${x1} ${y1} C ${x1} ${cpY}, ${x2} ${cpY}, ${x2} ${y2}`;
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'var(--color-teal)');
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke-dasharray', '3 2');
+    path.setAttribute('marker-end', 'url(#vq-arc-arrow)');
+    arcSvg.appendChild(path);
+  });
+
+  // Add arrowhead marker if any arcs were drawn
+  if (arcSvg.children.length > 0) {
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', 'vq-arc-arrow');
+    marker.setAttribute('markerWidth', '6');
+    marker.setAttribute('markerHeight', '6');
+    marker.setAttribute('refX', '3');
+    marker.setAttribute('refY', '3');
+    marker.setAttribute('orient', 'auto');
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', '0 0, 6 3, 0 6');
+    poly.setAttribute('fill', 'var(--color-teal)');
+    marker.appendChild(poly);
+    defs.appendChild(marker);
+    arcSvg.insertBefore(defs, arcSvg.firstChild);
+  }
 }
 
 // Toggle a variable chip: null → 'free' → 'bound' → null
@@ -479,13 +581,12 @@ function varQuizToggle(occIdx) {
     btn.classList.remove('correct', 'incorrect');
     const badge = btn.querySelector('.vq-badge');
     if (badge) {
-      if (occ.studentAnswer === 'bound' && occ.bindingQuantifier) {
-        badge.textContent = 'bound by ' + occ.bindingQuantifier;
-      } else {
-        badge.textContent = occ.studentAnswer || '?';
-      }
+      // Arc shows the binding quantifier visually — badge just says 'bound'
+      badge.textContent = occ.studentAnswer || '?';
     }
   }
+  // Redraw all binding arcs after any state change
+  drawBindingArcs();
 
   // Clear feedback when student changes an answer
   const fb = document.getElementById('ql-var-quiz-feedback');
@@ -541,6 +642,7 @@ function varQuizCheck() {
           if (badge) badge.textContent = '?';  // reset to unset state
         }
       });
+      drawBindingArcs(); // clear arcs for reset chips
     }, 1200);
   }
 }

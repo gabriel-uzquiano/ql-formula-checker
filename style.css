@@ -1415,8 +1415,12 @@ ol.help-list {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.15rem;
+  padding-top: 36px;    /* room for arcs to arc above the formula */
+  position: relative;   /* arc SVG overlay is scoped here */
 }
 .var-quiz-token { white-space: pre; }
+/* Binding-variable span (the x in ∀x / ∃x) — used as arc target */
+.vq-binder { white-space: pre; }
 .var-quiz-var {
   display: inline-flex;
   align-items: baseline;
