@@ -1572,6 +1572,7 @@ ol.help-list {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-offset);
+  overflow-x: auto; /* allow wide trees to scroll rather than clip */
 }
 .practice-solution-label {
   font-family: var(--font-sans);

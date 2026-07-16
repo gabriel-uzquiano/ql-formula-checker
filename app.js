@@ -215,6 +215,10 @@ function onFormulaChange() {
 
   pushHash();
 
+  // Show/hide the New Problem button
+  const npBtn = document.getElementById('new-problem-btn');
+  if (npBtn) npBtn.hidden = !raw.trim();
+
   if (!raw.trim()) {
     _currentAstQL = null;
     setStatus(null);
@@ -260,6 +264,31 @@ function copyLink() {
 }
 
 if (copyLinkBtn) copyLinkBtn.addEventListener('click', copyLink);
+
+// ── New Problem ──────────────────────────────────────────────────────────────
+function newProblemQL() {
+  // Clear input
+  input.value = '';
+  _lastVal = '';
+  _currentAstQL = null;
+  history.replaceState(null, '', location.pathname);
+
+  // Reset all display state
+  setStatus(null);
+  renderTree(null);
+  updateVarsPanel(null);
+
+  // Reset practice panels
+  clearPracticeUIQL();
+
+  // Hide the button itself
+  const npBtn = document.getElementById('new-problem-btn');
+  if (npBtn) npBtn.hidden = true;
+
+  // Scroll to top of page and focus the input
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => input.focus(), 300);
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadHash();

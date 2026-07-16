@@ -99,6 +99,27 @@ function resetPracticeQL() {
   startPracticeQL(_ast);
 }
 
+// Hide all practice UI panels (called by newProblemQL in app.js when clearing)
+function clearPracticeUIQL() {
+  _ast = null;
+  _activeNode = null;
+  _stage = null;
+  _varOccurrences = [];
+  const ids = [
+    'ql-var-quiz-panel', 'ql-oc-quiz-panel',
+    'ql-practice-complete-banner', 'ql-practice-solution-row',
+    'ql-practice-solution-panel',
+  ];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
+  // Clear arc SVG
+  const arcSvg = document.getElementById('vq-arc-svg');
+  if (arcSvg) arcSvg.innerHTML = '';
+  // Clear the build-mode SVG
+  const svg = document.getElementById('ql-practice-svg');
+  if (svg) { svg.setAttribute('width', '0'); svg.setAttribute('height', '0'); svg.innerHTML = ''; }
+  ptSetStatusQL('Enter a formula above to practice.');
+}
+
 // ── Stage helpers ─────────────────────────────────────────────────────────────
 
 // Returns the main connective string for a node, used to check button clicks.
