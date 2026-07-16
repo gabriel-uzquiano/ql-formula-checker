@@ -107,8 +107,7 @@ function clearPracticeUIQL() {
   _varOccurrences = [];
   const ids = [
     'ql-var-quiz-panel', 'ql-oc-quiz-panel',
-    'ql-practice-complete-banner', 'ql-practice-solution-row',
-    'ql-practice-solution-panel',
+    'ql-practice-complete-banner',
   ];
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
   // Clear arc SVG
@@ -783,34 +782,6 @@ function ocQuizAnswer(answer) {
 function finishPracticeQL() {
   _stage = STAGE_DONE;
   ptSetStatusQL('');
-
   const banner = document.getElementById('ql-practice-complete-banner');
   if (banner) banner.hidden = false;
-
-  const solRow = document.getElementById('ql-practice-solution-row');
-  if (solRow) solRow.hidden = false;
-}
-
-function togglePracticeSolutionQL() {
-  const panel = document.getElementById('ql-practice-solution-panel');
-  const btn   = document.getElementById('ql-practice-solution-btn');
-  if (!panel || !btn) return;
-
-  const showing = !panel.hidden;
-  panel.hidden = showing;
-  btn.textContent = showing ? 'Show solution' : 'Hide solution';
-
-  if (!showing && _ast) {
-    // Render the full reference tree into the solution panel
-    const solSvg = document.getElementById('ql-solution-svg');
-    if (solSvg) {
-      // Swap IDs temporarily so renderTree writes to the solution container
-      const treeSvg = document.getElementById('tree-svg');
-      if (treeSvg) treeSvg.id = '__tree-svg-hidden';
-      solSvg.id = 'tree-svg';
-      renderTree(_ast);
-      solSvg.id = 'ql-solution-svg';
-      if (treeSvg) treeSvg.id = 'tree-svg';
-    }
-  }
 }
