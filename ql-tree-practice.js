@@ -171,15 +171,18 @@ function ptRenderQL() {
   const svgEl = document.getElementById('ql-practice-svg');
   if (!svgEl || !_ast) return;
 
-  // Measure label widths using a temporary canvas
+  // Measure label widths using a temporary canvas.
+  // Use the same monospace font + size as the View tree (tree.js: FONT_SZ=15, --font-mono).
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const fontSize = 13;
-  const fontFace = 'et-book, Palatino Linotype, Book Antiqua, Palatino, Georgia, serif';
+  const fontSize = 15;
+  const fontFace = 'Consolas, "Liberation Mono", Menlo, Courier, monospace';
   ctx.font = `${fontSize}px ${fontFace}`;
 
-  const PAD_H = 12, PAD_V = 7, LEVEL_H = 48, H_GAP = 16, MIN_W = 32, MARGIN = 8;
+  const PAD_H = 16, PAD_V = 10, LEVEL_H = 52, H_GAP = 16, MIN_W = 36;
   const BOX_H = PAD_V * 2 + fontSize;
+  // Top margin must be at least BOX_H/2 so the root rect isn't clipped.
+  const MARGIN = Math.ceil(BOX_H / 2) + 4;
 
   // Layout: ALL nodes (including pending)
   const positions = new Map();
@@ -265,7 +268,8 @@ function ptRenderQL() {
     g.appendChild(qlSvgEl('text', {
       x: pos.x, y: pos.y + fontSize * 0.38,
       'text-anchor': 'middle', 'dominant-baseline': 'central',
-      'font-family': fontFace, 'font-size': fontSize,
+      'font-family': 'var(--font-mono)',
+      'font-size': fontSize,
       fill: textColor,
     }, nodeLabel(n)));
     nodeG.appendChild(g);
@@ -346,6 +350,9 @@ function buildVarQuiz() {
   const panel = document.getElementById('ql-var-quiz-panel');
   if (!panel) return;
 
+  panel.hidden = false;  // ensure visible before scroll
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+
   const formulaDiv = document.getElementById('ql-var-quiz-formula');
   if (formulaDiv) {
     formulaDiv.innerHTML = '';
@@ -366,10 +373,19 @@ function buildVarQuiz() {
         // Clickable variable occurrence
         const btn = document.createElement('button');
         btn.className = 'var-quiz-var';
-        btn.textContent = t.text;
         btn.dataset.occIdx = occIdx;
-        btn.title = 'Click to toggle free / bound';
-        const _idx = occIdx; // capture current value
+        btn.title = 'Click to mark as free or bound';
+        // Variable name span
+        const varSpan = document.createElement('span');
+        varSpan.className = 'vq-name';
+        varSpan.textContent = t.text;
+        btn.appendChild(varSpan);
+        // Badge span (shows ?, free, or bound)
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'vq-badge';
+        badgeSpan.textContent = '?';
+        btn.appendChild(badgeSpan);
+        const _idx = occIdx;
         btn.addEventListener('click', () => varQuizToggle(_idx));
         formulaDiv.appendChild(btn);
         occIdx++;
@@ -402,6 +418,8 @@ function varQuizToggle(occIdx) {
   if (btn) {
     btn.dataset.answer = occ.studentAnswer || '';
     btn.classList.remove('correct', 'incorrect');
+    const badge = btn.querySelector('.vq-badge');
+    if (badge) badge.textContent = occ.studentAnswer || '?';
   }
 
   // Clear feedback when student changes an answer
@@ -454,6 +472,8 @@ function varQuizCheck() {
           occ.studentAnswer = null;
           btn.dataset.answer = '';
           btn.classList.remove('incorrect');
+          const badge = btn.querySelector('.vq-badge');
+          if (badge) badge.textContent = '?';
         }
       });
     }, 1200);
