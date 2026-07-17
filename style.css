@@ -197,7 +197,7 @@ input, select { font: inherit; color: inherit; }
 .logo {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
+  gap: var(--space-5);
 }
 .logo-text {
   font-size: var(--text-lg);
