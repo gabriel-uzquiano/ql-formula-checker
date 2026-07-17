@@ -194,7 +194,7 @@ input, select { font: inherit; color: inherit; }
   align-items: baseline;
   justify-content: space-between;
 }
-.logo {
+.logo, .header-brand {
   display: flex;
   align-items: baseline;
   gap: 2.5rem;
