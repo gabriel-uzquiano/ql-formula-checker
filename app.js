@@ -1,9 +1,10 @@
 // ── QL Formula Checker — app.js ─────────────────────────────────────────────
 
-// ── Card mode (?card=formula) ─────────────────────────────────────────────────
-//  ?card=formula  → show formula input + parse tree only (hide header, help, vars, practice)
+// ── Card mode (?card=formula | ?card=tree) ───────────────────────────────────
+//  ?card=formula  → formula input + parse tree (both tabs), hide vars & header
+//  ?card=tree     → formula input + View tab only (no Build tab, no vars)
 const _urlParams = new URLSearchParams(window.location.search);
-const _cardMode  = _urlParams.get('card');  // e.g. 'formula' or null
+const _cardMode  = _urlParams.get('card');  // e.g. 'formula', 'tree', or null
 
 // ── Theme toggle ──────────────────────────────────────────────────────────────
 (function () {
@@ -306,12 +307,25 @@ function applyCardMode() {
   if (_cardMode === 'formula') {
     const varsCard = document.getElementById('vars-card');
     if (varsCard) varsCard.hidden = true;
-    const practiceSection = document.getElementById('practice-section');
-    if (practiceSection) practiceSection.hidden = true;
     const copyBtn = document.getElementById('copy-link-btn');
     if (copyBtn) copyBtn.hidden = true;
     const newProbBtn = document.getElementById('new-problem-btn');
     if (newProbBtn) newProbBtn.hidden = true;
+  }
+  // tree card: formula input + View tab only (hides Build tab and vars)
+  if (_cardMode === 'tree') {
+    const varsCard = document.getElementById('vars-card');
+    if (varsCard) varsCard.hidden = true;
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (copyBtn) copyBtn.hidden = true;
+    const newProbBtn = document.getElementById('new-problem-btn');
+    if (newProbBtn) newProbBtn.hidden = true;
+    // Switch to View tab and hide the tab bar
+    switchTreeTabQL('view');
+    const tabBuild = document.getElementById('ql-tab-build');
+    if (tabBuild) tabBuild.hidden = true;
+    const tabView = document.getElementById('ql-tab-view');
+    if (tabView) tabView.hidden = true;  // hide tab bar entirely
   }
 }
 
