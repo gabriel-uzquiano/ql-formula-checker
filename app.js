@@ -1,5 +1,10 @@
 // ── QL Formula Checker — app.js ─────────────────────────────────────────────
 
+// ── Card mode (?card=formula) ─────────────────────────────────────────────────
+//  ?card=formula  → show formula input + parse tree only (hide header, help, vars, practice)
+const _urlParams = new URLSearchParams(window.location.search);
+const _cardMode  = _urlParams.get('card');  // e.g. 'formula' or null
+
 // ── Theme toggle ──────────────────────────────────────────────────────────────
 (function () {
   const root = document.documentElement;
@@ -290,7 +295,28 @@ function newProblemQL() {
   setTimeout(() => input.focus(), 300);
 }
 
+
+// ── Card mode: hide sections based on ?card= param ──────────────────────────
+function applyCardMode() {
+  if (!_cardMode) return;
+  const header = document.querySelector('.app-header');
+  if (header) header.hidden = true;
+  const helpPanel = document.getElementById('help-panel');
+  if (helpPanel) helpPanel.hidden = true;
+  if (_cardMode === 'formula') {
+    const varsCard = document.getElementById('vars-card');
+    if (varsCard) varsCard.hidden = true;
+    const practiceSection = document.getElementById('practice-section');
+    if (practiceSection) practiceSection.hidden = true;
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (copyBtn) copyBtn.hidden = true;
+    const newProbBtn = document.getElementById('new-problem-btn');
+    if (newProbBtn) newProbBtn.hidden = true;
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadHash();
 if (!input.value) onFormulaChange();
 if (_currentAstQL) startPracticeQL(_currentAstQL);
+applyCardMode();
