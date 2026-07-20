@@ -312,20 +312,18 @@ function applyCardMode() {
     const newProbBtn = document.getElementById('new-problem-btn');
     if (newProbBtn) newProbBtn.hidden = true;
   }
-  // tree card: formula input + View tab only (hides Build tab and vars)
+  // tree card: parse tree View tab only (no formula card, no vars, no Build tab)
   if (_cardMode === 'tree') {
+    const formulaCard = document.getElementById('formula-card');
+    if (formulaCard) formulaCard.hidden = true;
     const varsCard = document.getElementById('vars-card');
     if (varsCard) varsCard.hidden = true;
-    const copyBtn = document.getElementById('copy-link-btn');
-    if (copyBtn) copyBtn.hidden = true;
-    const newProbBtn = document.getElementById('new-problem-btn');
-    if (newProbBtn) newProbBtn.hidden = true;
     // Switch to View tab and hide the tab bar
     switchTreeTabQL('view');
     const tabBuild = document.getElementById('ql-tab-build');
     if (tabBuild) tabBuild.hidden = true;
     const tabView = document.getElementById('ql-tab-view');
-    if (tabView) tabView.hidden = true;  // hide tab bar entirely
+    if (tabView) tabView.hidden = true;
   }
 }
 
